@@ -66,7 +66,6 @@ class YOLODataset(Dataset):
             self.names = cfg.get("names")
             # print(self.anno_dir)
 
-        self.suffix = kwargs.get("suffix") or "jpg"
         self.use_cache = kwargs.get("use_cache") or False
         self.is_train = is_train
         self.img_size = np.array([*img_size])
@@ -115,9 +114,9 @@ class YOLODataset(Dataset):
                         classes.append(name.replace(" ", "-"))
         return classes
 
-    def get_anno_by_name(self, name):
+    def get_anno_by_name(self, name, image_filename):
         msg = {
-            "image": os.path.join(self.train_dir, f"{os.path.basename(name)[:-4]}.{self.suffix}"),
+            "image": os.path.join(self.train_dir, image_filename),
             "annotations": []
         }
         num_labels = 0
@@ -179,19 +178,33 @@ class YOLODataset(Dataset):
         else:
             self.cached = False
             annotation_list = []
-            file_list = glob(os.path.join(self.anno_dir, "*.txt"))
-            num_file = len(file_list)
-            for self.idx, anno_file in enumerate(file_list):
+            annotation_file_list = glob(os.path.join(self.anno_dir, "*.txt"))
+
+            # get all files in the train_dir, extention does not matter
+            image_file_names = glob(os.path.join(self.train_dir, "*"))
+
+            # create a dictionary with the image name as key and the image path as value
+            image_file_dict = {}
+            for image_file_name in image_file_names:
+                image_file_dict[os.path.splitext(os.path.basename(image_file_name))[0]] = image_file_name
+
+            num_file = len(annotation_file_list)
+            for self.idx, anno_file in enumerate(annotation_file_list):
 
                 print(f"\rprocessing labels: {self.idx + 1} / {num_file}", end="")
 
                 anno_file = anno_file.replace('\\', '/')
-                if os.path.isfile(os.path.join(self.train_dir, f"{os.path.basename(anno_file)[:-4]}.{self.suffix}")):
-                    anno = self.get_anno_by_name(anno_file)
+                anno_file_name = os.path.splitext(os.path.basename(anno_file))[0]
+
+                if anno_file_name in image_file_dict:
+                    image_file_name = image_file_dict[anno_file_name]
+                    anno = self.get_anno_by_name(anno_file, image_file_name)
                     if not len(anno["annotations"]):
                         print(f"\nthere are no labels in {anno_file}, skip")
                     else:
                         annotation_list.append(anno)
+                else:
+                    print(f"\n{anno_file} does not have corresponding image file, skip")
             print()
             # with open(cache_file, "wb") as cachef:
             #     pickle.dump((annotation_list, self.coco_data, self.max_num_labels), cachef)
