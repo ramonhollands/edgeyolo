@@ -51,8 +51,12 @@ class YOLOXDetect(nn.Module):
     stride = [8, 16, 32]    # strides computed during build
     export = False          # onnx export
     is_fused = False
+    export_divide_factor = None  # for tflite export
 
-    def __init__(self, nc=80, anchors=(), conv=Conv, ch=()):
+    def __init__(self, nc=80, anchors=(), conv=Conv, ch=(), export_divide_factor=None):
+
+        self.export_divide_factor = export_divide_factor
+
         super(YOLOXDetect, self).__init__()
         self.ch = ch
         self.n_anchors = len(anchors[0]) // 2
@@ -119,8 +123,14 @@ class YOLOXDetect(nn.Module):
                 else:
                     xy, wh, conf = y.split((2, 2, self.num_classes + 1), 4)  # y.tensor_split((2, 4, 5), 4)# torch 1.8.0
                     conf = conf.sigmoid()
+
                     xy = (xy + self.grid[i]) * self.stride[i]  # new xy
                     wh = torch.exp(wh) * self.stride[i]  # new wh
+
+                    if self.export_divide_factor:
+                        xy = xy / self.export_divide_factor
+                        wh = wh / self.export_divide_factor
+
                     y = torch.cat((xy, wh, conf), 4)
 
                 z.append(y.view(bs, -1, self.num_classes + 5))
@@ -872,7 +882,7 @@ class IBin(nn.Module):
 
 
 class Model(nn.Module):
-    def __init__(self, cfg='yolor-csp-c.yaml', ch=3, nc=None, anchors=None, is_file=True):  # models, input channels, number of classes
+    def __init__(self, cfg='yolor-csp-c.yaml', ch=3, nc=None, anchors=None, export_divide_factor=None, is_file=True):  # models, input channels, number of classes
         super(Model, self).__init__()
         self.traced = False
         if isinstance(cfg, dict):
@@ -910,6 +920,10 @@ class Model(nn.Module):
             s = 256  # 2x min stride
             m.stride = torch.tensor([s / x.shape[-2] for x in self.forward(torch.zeros(1, ch, s, s))])  # forward
             self.stride = m.stride
+
+            print('Export divide factor: %s' % export_divide_factor)
+
+            m.export_divide_factor = export_divide_factor
             # print('Strides: %s' % m.stride.tolist())
         if isinstance(m, Detect):
             s = 256  # 2x min stride

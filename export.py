@@ -38,6 +38,7 @@ def get_args():
     parser.add_argument("--train", action="store_true", help="use train dataset for calibration(default: val)")
     parser.add_argument("--all", action="store_true", help="use both train and val dataset")
     parser.add_argument("--num-imgs", type=int, default=512, help="number of images for calibration, -1 for all images")
+    parser.add_argument("--export_divide_factor", action="store_true", help="divide xywh by image size before last concat to enable tflite quantization")
 
     return parser.parse_args()
 
@@ -55,8 +56,13 @@ def main():
     if len(args.input_size) == 1:
         args.input_size *= 2
 
-    exp = EdgeYOLO(weights=args.weights)
+    export_divide_factor = None
+    if args.export_divide_factor:
+        export_divide_factor = max(args.input_size)
+
+    exp = EdgeYOLO(weights=args.weights, export_divide_factor=export_divide_factor)
     model = exp.model
+    model.tflite_image_sizes = args.input_size
     replace_module(model, torch.nn.SiLU, SiLU)
 
     model.fuse()
