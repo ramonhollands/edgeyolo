@@ -1,9 +1,9 @@
+import numpy as np
 import os
 import json
 import yaml
 import torch
 import argparse
-import numpy as np
 import tensorrt as trt
 
 from loguru import logger
