@@ -1,3 +1,4 @@
+import numpy as np
 from edgeyolo import launch as train
 import argparse
 
