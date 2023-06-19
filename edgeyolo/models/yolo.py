@@ -52,10 +52,14 @@ class YOLOXDetect(nn.Module):
     export = False          # onnx export
     is_fused = False
     export_divide_factor = None  # for tflite export
+    no_decode_layer = True
 
-    def __init__(self, nc=80, anchors=(), conv=Conv, ch=(), export_divide_factor=None):
+    def __init__(self, nc=80, anchors=(), conv=Conv, ch=(),
+                 no_decode_layer=False,
+                 export_divide_factor=None):
 
         self.export_divide_factor = export_divide_factor
+        self.no_decode_layer = no_decode_layer
 
         super(YOLOXDetect, self).__init__()
         self.ch = ch
@@ -89,7 +93,10 @@ class YOLOXDetect(nn.Module):
         self.training |= self.export
         export = torch.onnx.is_in_onnx_export()
 
+
         for i in range(self.n_layers):
+
+            print('i', x[i].shape)
             out = self.stems[i](x[i])
             cls_x = out
             reg_x = out
@@ -111,7 +118,7 @@ class YOLOXDetect(nn.Module):
             bs, _, ny, nx = x[i].shape  # x(bs,85,20,20) to x(bs,1,20,20,85)
             x[i] = x[i].view(bs, self.n_anchors, self.num_classes + 5, ny, nx).permute(0, 1, 3, 4, 2).contiguous()
 
-            if not self.training:  # inference
+            if not self.training and not self.no_decode_layer:  # inference
                 # if self.grid[i].shape[2:4] != x[i].shape[2:4]:
                 self.grid[i] = self._make_grid(nx, ny).to(x[i].device)
 
@@ -135,7 +142,7 @@ class YOLOXDetect(nn.Module):
 
                 z.append(y.view(bs, -1, self.num_classes + 5))
 
-        return x if self.training else torch.cat(z, 1)
+        return x if (self.training or self.no_decode_layer) else torch.cat(z, 1)
 
     def fuse(self):
         # print("YOLOXDetect.fuse")
@@ -882,7 +889,8 @@ class IBin(nn.Module):
 
 
 class Model(nn.Module):
-    def __init__(self, cfg='yolor-csp-c.yaml', ch=3, nc=None, anchors=None, export_divide_factor=None, is_file=True):  # models, input channels, number of classes
+    def __init__(self, cfg='yolor-csp-c.yaml', ch=3, nc=None, anchors=None, export_divide_factor=None,
+                 no_decode_layer=False, is_file=True):  # models, input channels, number of classes
         super(Model, self).__init__()
         self.traced = False
         if isinstance(cfg, dict):
@@ -922,8 +930,10 @@ class Model(nn.Module):
             self.stride = m.stride
 
             print('Export divide factor: %s' % export_divide_factor)
+            print('no_decode_layer', no_decode_layer)
 
             m.export_divide_factor = export_divide_factor
+            m.no_decode_layer = no_decode_layer
             # print('Strides: %s' % m.stride.tolist())
         if isinstance(m, Detect):
             s = 256  # 2x min stride
