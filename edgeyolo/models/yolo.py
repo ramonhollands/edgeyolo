@@ -96,7 +96,6 @@ class YOLOXDetect(nn.Module):
 
         for i in range(self.n_layers):
 
-            print('i', x[i].shape)
             out = self.stems[i](x[i])
             cls_x = out
             reg_x = out

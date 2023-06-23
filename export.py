@@ -4,7 +4,7 @@ import json
 import yaml
 import torch
 import argparse
-import tensorrt as trt
+# import tensorrt as trt
 
 from loguru import logger
 
