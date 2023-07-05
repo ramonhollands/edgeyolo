@@ -31,7 +31,7 @@ class CalibDataset(Dataset):
             dataset_path = [dataset_path]
         for this_path in dataset_path:
             if os.path.isdir(this_path):
-                self.path_list.extend(glob(os.path.join(this_path, f"*.{suffix}")))
+                self.path_list.extend(glob(os.path.join(this_path, "*")))
         random.shuffle(self.path_list)
         if self.num_img > 0:
             self.path_list = self.path_list[:self.num_img]
