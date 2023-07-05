@@ -7,7 +7,7 @@ import os
 from loguru import logger
 from ..utils import dictConfig
 
-def load_model(cfg_file, nc=None) -> Model:
+def load_model(cfg_file, nc=None, export_divide_factor=None, no_decode_layer=False) -> Model:
 
     def init_weight(M):
         from torch import nn
@@ -17,7 +17,10 @@ def load_model(cfg_file, nc=None) -> Model:
                 m.momentum = 0.03
 
 
-    my_model = Model(cfg_file, nc=nc, is_file=not (isinstance(cfg_file, dict) or not os.path.isfile(cfg_file)))
+    my_model = Model(cfg_file, nc=nc,
+                     export_divide_factor=export_divide_factor,
+                     no_decode_layer=no_decode_layer,
+                     is_file=not (isinstance(cfg_file, dict) or not os.path.isfile(cfg_file)))
     my_model.apply(init_weight)
     return my_model
 
@@ -40,7 +43,8 @@ class EdgeYOLO:
     ckpt = {}
     is_pretrain_mode = False
 
-    def __init__(self, cfg_file=None, weights=None, rank=0, write_cfg_to_weights=False, nc=None):
+    def __init__(self, cfg_file=None, weights=None, rank=0, write_cfg_to_weights=False, nc=None,
+                 export_divide_factor=None, no_decode_layer=False):
         self.rank = rank
         assert cfg_file is not None or weights is not None
 
@@ -79,7 +83,10 @@ class EdgeYOLO:
             # print(self.cfg_data)
             # from time import time
             # time.sleep(1000)
-            self.model = load_model(self.cfg_data, nc=self.ckpt["cfg_data"]["nc"])
+
+            self.model = load_model(self.cfg_data, nc=self.ckpt["cfg_data"]["nc"],
+                                    export_divide_factor=export_divide_factor,
+                                    no_decode_layer=no_decode_layer)
             try:
                 self.model.load_state_dict(self.ckpt["model"], strict=False)
             except Exception as e:
