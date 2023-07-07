@@ -71,7 +71,7 @@ def main():
     model.eval()
     # model.cuda()
 
-    export_path = Path(weights).parent / "export"
+    export_path = Path(args.weights).parent / "export"
 
     os.makedirs(export_path, exist_ok=True)
 
