@@ -42,6 +42,8 @@ def get_args():
     parser.add_argument("--export_divide_factor", action="store_true", help="divide xywh by image size before last concat to enable tflite quantization")
     parser.add_argument("--no_decode_layer", action="store_true", help="remove detection decode layer")
 
+    parser.add_argument("--export_path", type=str)
+
     return parser.parse_args()
 
 
@@ -71,7 +73,10 @@ def main():
     model.eval()
     # model.cuda()
 
-    export_path = Path(args.weights).parent / "export"
+    if args.export_path:
+        export_path = Path(args.export_path)
+    else:
+        export_path = Path(args.weights).parent / "export"
 
     os.makedirs(export_path, exist_ok=True)
 
