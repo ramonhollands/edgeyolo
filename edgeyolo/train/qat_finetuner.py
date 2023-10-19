@@ -334,7 +334,7 @@ class Finetuner(EdgeYOLO):
     def finetune(self):
 
         nncf_config_dict = {
-            "input_info": {"sample_size": [1, 3, 224, 224]}, # input shape required for model tracing
+            "input_info": {"sample_size": [1, 3, self.input_size[0], self.input_size[1]]}, # input shape required for model tracing
             "compression": {
                 "algorithm": "quantization",  # 8-bit quantization with default settings
             },
