@@ -21,3 +21,5 @@ onnxsim
 # pycuda
 # tensorrt
 # torch2trt
+###### int8 QAT
+# nncf
