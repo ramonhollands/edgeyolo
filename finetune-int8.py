@@ -1,5 +1,5 @@
 import numpy as np
-from edgeyolo import launch as train
+from edgeyolo import launch_finetune
 import argparse
 
 
@@ -14,4 +14,4 @@ def make_parser():
 
 if __name__ == '__main__':
     args = make_parser()
-    train("DEFAULT" if args.default else args.cfg)
+    launch_finetune("DEFAULT" if args.default else args.cfg)
