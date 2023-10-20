@@ -17,6 +17,8 @@ class MaskDataLoader:
             num_workers=4,
             train_mask=True
     ):
+        
+        self.batch_size = batch_size
         self.dataset = dataset
         self.train_mask = train_mask
         sampler = InfiniteSampler(
@@ -44,6 +46,9 @@ class MaskDataLoader:
 
     def next(self):
         return self.prefetcher.next()
+    
+    def __iter__(self):
+        return iter(self.prefetcher)
 
     def close_mosaic(self):
         self.train_loader.close_mosaic()
@@ -110,6 +115,12 @@ class DataPrefetcher:
             return input, target, segms
         else:
             return input, target
+        
+    def __iter__(self):
+        return self
+    
+    def __next__(self):
+        return self.next()
 
     def _input_cuda_for_image(self):
         self.next_input = self.next_input.cuda(non_blocking=True)

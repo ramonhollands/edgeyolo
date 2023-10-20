@@ -24,6 +24,8 @@ from ..data import (
     get_dataset,
 )
 
+from torch.utils.data import DataLoader
+
 import tabulate
 import datetime
 import yaml
@@ -61,7 +63,7 @@ class Finetuner(EdgeYOLO):
                     names = self.dataset_cfg.get("names")
                     nc = len(names)
 
-            super(Trainer, self).__init__(params["model_cfg"] if "model_cfg" in params else None,
+            super(Finetuner, self).__init__(params["model_cfg"] if "model_cfg" in params else None,
                                           params["weights"],
                                           rank,
                                           params["use_cfg"],
@@ -179,6 +181,7 @@ class Finetuner(EdgeYOLO):
                 num_workers=self.params["loader_num_workers"],
                 train_mask=False
             )
+
             if self.rank == 0:
                 logger.info("prefetcher loaded!")
             self.max_iter = len(self.dataloader)
@@ -333,26 +336,17 @@ class Finetuner(EdgeYOLO):
 
     def finetune(self):
 
-        nncf_config_dict = {
-            "input_info": {"sample_size": [1, 3, self.input_size[0], self.input_size[1]]}, # input shape required for model tracing
-            "compression": {
-                "algorithm": "quantization",  # 8-bit quantization with default settings
-            },
-        }
-        nncf_config = NNCFConfig.from_dict(nncf_config_dict)
-        print(self.dataloader)
-        nncf_config = register_default_init_args(nncf_config, self.dataloader) # train_loader is an instance of torch.utils.data.DataLoader
 
         def before_train():
+
+
+
             if self.rank == 0:
                 logger.info(f"params:\n{self}")
                 logger.info(f"num classes: {self.model.yaml['nc']}")
                 logger.info(get_model_info(self.model, self.input_size))
 
             self.load_init()
-
-            print(self.model)
-            self.compression_ctrl, self.model = create_compressed_model(self.model, nncf_config) 
 
             if self.is_distributed:
                 self.model = DDP(self.model, device_ids=[self.params["device"][self.rank]], broadcast_buffers=False)
@@ -378,6 +372,18 @@ class Finetuner(EdgeYOLO):
                 self.evaluate()
 
             self.start_time = time.time()
+
+            nncf_config_dict = {
+                "input_info": {"sample_size": [1, 3, self.input_size[0], self.input_size[1]], }, # input shape required for model tracing
+                "compression": {
+                    "algorithm": "quantization",  # 8-bit quantization with default settings
+                },
+            }
+
+            nncf_config = NNCFConfig.from_dict(nncf_config_dict)
+            nncf_config = register_default_init_args(nncf_config, self.dataloader) # train_loader is an instance of torch.utils.data.DataLoader
+            self.compression_ctrl, self.model = create_compressed_model(self.model, nncf_config) 
+
 
         def train_one_epoch():
             def before_epoch():
@@ -406,7 +412,7 @@ class Finetuner(EdgeYOLO):
 
                 def train_in_iter():
 
-                    self.compression_ctrl.scheduler.step()
+                    # self.compression_ctrl.scheduler.step()
 
                     iter_start_time = time.time()
 
@@ -516,11 +522,17 @@ class Finetuner(EdgeYOLO):
 
             self.compression_ctrl.export_model("qat-finetune-model.onnx")
 
+            x = np.ones([1, 3, 224, 224], dtype=np.float32)
+            x = torch.from_numpy(x)  # .cuda()
+            inference_model = self.compression_ctrl.strip(do_copy=False)
+            inference_model.cpu()
+            torch.onnx.export(inference_model, x, 'stripped-qat-finetune-model.onnx')
+
         if self.params["eval_only"]:
             self.evaluate_only()
         else:
             before_train()
-            for self.now_epoch in range(self.start_epoch, self.max_epoch):
+            for self.now_epoch in range(1):
                 train_one_epoch()
             after_train()
 
@@ -548,9 +560,9 @@ class Finetuner(EdgeYOLO):
             logger.info("\n" + summary)
         synchronize()
 
-        pth_save = ["last.pth"]
+        pth_save = ["last_int8.pth"]
         if ap50_95 > self.best_ap:
-            pth_save.append("best.pth")
+            pth_save.append("best_int8.pth")
             self.best_epoch = self.now_epoch
         self.best_ap = max(self.best_ap, ap50_95)
 
@@ -610,6 +622,7 @@ class Finetuner(EdgeYOLO):
         model_save = self.ema_model.ema \
             if self.params["use_ema"] else self.model.module \
             if self.is_distributed else self.model
+
         kwargs["model"] = model_save.state_dict()
 
         self.save(save_path, kwargs)

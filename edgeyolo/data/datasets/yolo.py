@@ -285,8 +285,9 @@ class YOLODataset(Dataset):
                 h, w (int): original shape of the image
             img_id (int): same as the input index. Used for evaluation.
         """
+
         img, target, img_info, img_id, segments = self.pull_item(index)
-        # print(img_info)
+
         if self.preproc is not None:
             if self.is_train:
                 img, target, segments = self.preproc(img, target, self.input_dim, segments)
