@@ -64,10 +64,10 @@ def main():
     export_divide_factor_wh = None
 
     if args.export_divide_factor:
-        export_divide_factor_xy = args.image_size[0]
+        export_divide_factor_xy = args.input_size[0]
 
     if args.export_divide_factor:
-        export_divide_factor_wh = args.image_size[1]
+        export_divide_factor_wh = args.input_size[1]
 
     exp = EdgeYOLO(weights=args.weights, export_divide_factor_xy=export_divide_factor_xy, export_divide_factor_wh=export_divide_factor_wh, no_decode_layer=args.no_decode_layer)
     model = exp.model
