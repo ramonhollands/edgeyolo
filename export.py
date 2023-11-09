@@ -60,11 +60,16 @@ def main():
     if len(args.input_size) == 1:
         args.input_size *= 2
 
-    export_divide_factor = None
-    if args.export_divide_factor:
-        export_divide_factor = max(args.input_size)
+    export_divide_factor_xy = None
+    export_divide_factor_wh = None
 
-    exp = EdgeYOLO(weights=args.weights, export_divide_factor=export_divide_factor, no_decode_layer=args.no_decode_layer)
+    if args.export_divide_factor:
+        export_divide_factor_xy = args.image_size[0]
+
+    if args.export_divide_factor:
+        export_divide_factor_wh = args.image_size[1]
+
+    exp = EdgeYOLO(weights=args.weights, export_divide_factor_xy=export_divide_factor_xy, export_divide_factor_wh=export_divide_factor_wh, no_decode_layer=args.no_decode_layer)
     model = exp.model
     model.tflite_image_sizes = args.input_size
     replace_module(model, torch.nn.SiLU, SiLU)

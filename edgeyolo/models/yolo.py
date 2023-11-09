@@ -51,14 +51,17 @@ class YOLOXDetect(nn.Module):
     stride = [8, 16, 32]    # strides computed during build
     export = False          # onnx export
     is_fused = False
-    export_divide_factor = None  # for tflite export
+    export_divide_factor_wh = None  # for tflite export
+    export_divide_factor_xy = None
     no_decode_layer = True
 
     def __init__(self, nc=80, anchors=(), conv=Conv, ch=(),
                  no_decode_layer=False,
-                 export_divide_factor=None):
+                 export_divide_factor_xy=None, export_divide_factor_wh=None):
 
-        self.export_divide_factor = export_divide_factor
+        self.export_divide_factor_xy = export_divide_factor_xy
+        self.export_divide_factor_wh = export_divide_factor_wh
+
         self.no_decode_layer = no_decode_layer
 
         super(YOLOXDetect, self).__init__()
@@ -133,9 +136,9 @@ class YOLOXDetect(nn.Module):
                     xy = (xy + self.grid[i]) * self.stride[i]  # new xy
                     wh = torch.exp(wh) * self.stride[i]  # new wh
 
-                    if self.export_divide_factor:
-                        xy = xy / self.export_divide_factor
-                        wh = wh / self.export_divide_factor
+                    if self.export_divide_factor_xy:
+                        xy = xy / self.export_divide_factor_xy
+                        wh = wh / self.export_divide_factor_wh
 
                     y = torch.cat((xy, wh, conf), 4)
 
@@ -888,7 +891,7 @@ class IBin(nn.Module):
 
 
 class Model(nn.Module):
-    def __init__(self, cfg='yolor-csp-c.yaml', ch=3, nc=None, anchors=None, export_divide_factor=None,
+    def __init__(self, cfg='yolor-csp-c.yaml', ch=3, nc=None, anchors=None, export_divide_factor_xy=None, export_divide_factor_wh=None,
                  no_decode_layer=False, is_file=True):  # models, input channels, number of classes
         super(Model, self).__init__()
         self.traced = False
@@ -928,10 +931,12 @@ class Model(nn.Module):
             m.stride = torch.tensor([s / x.shape[-2] for x in self.forward(torch.zeros(1, ch, s, s))])  # forward
             self.stride = m.stride
 
-            print('Export divide factor: %s' % export_divide_factor)
+            print('Export divide factor xy: %s' % export_divide_factor_xy)
+            print('Export divide factor wh: %s' % export_divide_factor_wh)
             print('no_decode_layer', no_decode_layer)
 
-            m.export_divide_factor = export_divide_factor
+            m.export_divide_factor_xy = export_divide_factor_xy
+            m.export_divide_factor_wh = export_divide_factor_wh
             m.no_decode_layer = no_decode_layer
             # print('Strides: %s' % m.stride.tolist())
         if isinstance(m, Detect):
