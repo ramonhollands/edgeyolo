@@ -198,7 +198,7 @@ class Trainer(EdgeYOLO):
 
             dataloader_kwargs = {
                 "num_workers": self.params["loader_num_workers"],
-                "pin_memory": True,
+                "pin_memory": False,
                 "sampler": sampler,
                 "batch_size": self.params["batch_size_per_gpu"]
             }

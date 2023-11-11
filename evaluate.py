@@ -84,7 +84,7 @@ def load_evaluator(rank, params, is_distributed):
 
     dataloader_kwargs = {
         "num_workers": params["loader_num_workers"],
-        "pin_memory": True,
+        "pin_memory": False,
         "sampler": sampler,
         "batch_size": params["batch_size_per_gpu"]
     }

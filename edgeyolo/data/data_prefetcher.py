@@ -35,7 +35,7 @@ class MaskDataLoader:
 
         dataloader_kwargs = {
             "num_workers": num_workers,
-            "pin_memory": True,
+            "pin_memory": False,
             "batch_sampler": batch_sampler,
             "worker_init_fn": worker_init_reset_seed
         }
