@@ -4,7 +4,7 @@ import json
 import yaml
 import torch
 import argparse
-import tensorrt as trt
+
 from pathlib import Path
 
 from loguru import logger
@@ -60,16 +60,16 @@ def main():
     if len(args.input_size) == 1:
         args.input_size *= 2
 
-    export_divide_factor_xy = None
-    export_divide_factor_wh = None
+    export_divide_factor_width = None
+    export_divide_factor_height = None
 
     if args.export_divide_factor:
-        export_divide_factor_xy = args.input_size[0]
+        export_divide_factor_width = args.input_size[1]
 
     if args.export_divide_factor:
-        export_divide_factor_wh = args.input_size[1]
+        export_divide_factor_height = args.input_size[0]
 
-    exp = EdgeYOLO(weights=args.weights, export_divide_factor_xy=export_divide_factor_xy, export_divide_factor_wh=export_divide_factor_wh, no_decode_layer=args.no_decode_layer)
+    exp = EdgeYOLO(weights=args.weights, export_divide_factor_width=export_divide_factor_width, export_divide_factor_height=export_divide_factor_height, no_decode_layer=args.no_decode_layer)
     model = exp.model
     model.tflite_image_sizes = args.input_size
     replace_module(model, torch.nn.SiLU, SiLU)
@@ -149,6 +149,7 @@ def main():
         logger.info(f'ONNX export success, saved as {onnx_file}')
 
     else:
+        import tensorrt as trt
         from edgeyolo.export import torch2onnx2trt
         model_trt = torch2onnx2trt(
             model,

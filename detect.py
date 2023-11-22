@@ -32,6 +32,7 @@ def get_args():
     parser.add_argument("--no-label", action="store_true", help="do not draw label")
     parser.add_argument("--save-dir", type=str, default="./output/detect/imgs/", help="image result save dir")
     parser.add_argument("--fps", type=int, default=99999, help="max fps")
+    parser.add_argument("--no-cuda", action="store_true", help="do not use cuda")
 
     return parser.parse_args()
 
@@ -49,7 +50,8 @@ def detect_single(args):
         input_size=args.input_size,
         fuse=not args.no_fuse,
         fp16=args.fp16,
-        use_decoder=args.use_decoder
+        use_decoder=args.use_decoder,
+        cpu=args.no_cuda
     )
     if args.trt:
         args.batch = detect.batch_size
