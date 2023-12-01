@@ -51,18 +51,22 @@ class YOLOXDetect(nn.Module):
     stride = [8, 16, 32]    # strides computed during build
     export = False          # onnx export
     is_fused = False
-    export_divide_factor_height = None  # for tflite export
-    export_divide_factor_width = None
+    divide_x = None  # for tflite export
+    divide_y = None
+    divide_w = None
+    divide_h = None
     no_decode_layer = True
 
     def __init__(self, nc=80, anchors=(), conv=Conv, ch=(),
-                 no_decode_layer=False,
-                 export_divide_factor_width=None, export_divide_factor_height=None):
+                 no_decode_layer=True,
+                 divide_x=None, divide_y=None, divide_w=None, divide_h=None):
 
-        self.export_divide_factor_width = export_divide_factor_width
-        self.export_divide_factor_height = export_divide_factor_height
+        self.divide_x = divide_x
+        self.divide_y = divide_y
+        self.divide_w = divide_w
+        self.divide_h = divide_h
 
-        self.no_decode_layer = no_decode_layer
+        self.no_decode_layer = True
 
         super(YOLOXDetect, self).__init__()
         self.ch = ch
@@ -136,9 +140,10 @@ class YOLOXDetect(nn.Module):
                     xy = (xy + self.grid[i]) * self.stride[i]  # new xy
                     wh = torch.exp(wh) * self.stride[i]  # new wh
 
-                    if self.export_divide_factor_width:
-                        xy = xy / torch.tensor([self.export_divide_factor_width, self.export_divide_factor_height])
-                        wh = wh / torch.tensor([self.export_divide_factor_width, self.export_divide_factor_height])
+                    if self.divide_x:
+                        xy = xy / torch.tensor([self.divide_x, self.divide_y])
+                        wh = wh / torch.tensor([self.divide_w, self.divide_h])
+                        wh.clamp_(min=0.0, max=1.0)
 
                     y = torch.cat((xy, wh, conf), 4)
 
@@ -891,7 +896,7 @@ class IBin(nn.Module):
 
 
 class Model(nn.Module):
-    def __init__(self, cfg='yolor-csp-c.yaml', ch=3, nc=None, anchors=None, export_divide_factor_width=None, export_divide_factor_height=None,
+    def __init__(self, cfg='yolor-csp-c.yaml', ch=3, nc=None, anchors=None, divide_x=1, divide_y=1, divide_h=1, divide_w=1,
                  no_decode_layer=False, is_file=True):  # models, input channels, number of classes
         super(Model, self).__init__()
         self.traced = False
@@ -930,13 +935,11 @@ class Model(nn.Module):
             s = 256  # 2x min stride
             m.stride = torch.tensor([s / x.shape[-2] for x in self.forward(torch.zeros(1, ch, s, s))])  # forward
             self.stride = m.stride
+            m.divide_x = divide_x
+            m.divide_y = divide_y
+            m.divide_h = divide_h
+            m.divide_w = divide_w
 
-            print('Export divide factor width: %s' % export_divide_factor_width)
-            print('Export divide factor height: %s' % export_divide_factor_height)
-            print('no_decode_layer', no_decode_layer)
-
-            m.export_divide_factor_width = export_divide_factor_width
-            m.export_divide_factor_height = export_divide_factor_height
             m.no_decode_layer = no_decode_layer
             # print('Strides: %s' % m.stride.tolist())
         if isinstance(m, Detect):

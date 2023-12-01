@@ -7,7 +7,7 @@ import os
 from loguru import logger
 from ..utils import dictConfig
 
-def load_model(cfg_file, nc=None, export_divide_factor_width=None, export_divide_factor_height=None, no_decode_layer=False) -> Model:
+def load_model(cfg_file, nc=None, divide_x=None, divide_y=None, divide_h=None, divide_w=None, no_decode_layer=False) -> Model:
 
     def init_weight(M):
         from torch import nn
@@ -18,8 +18,7 @@ def load_model(cfg_file, nc=None, export_divide_factor_width=None, export_divide
 
 
     my_model = Model(cfg_file, nc=nc,
-                     export_divide_factor_width=export_divide_factor_width,
-                     export_divide_factor_height=export_divide_factor_height,
+                     divide_x=divide_x, divide_y=divide_y, divide_h=divide_h, divide_w=divide_w,
                      no_decode_layer=no_decode_layer,
                      is_file=not (isinstance(cfg_file, dict) or not os.path.isfile(cfg_file)))
     my_model.apply(init_weight)
@@ -45,7 +44,7 @@ class EdgeYOLO:
     is_pretrain_mode = False
 
     def __init__(self, cfg_file=None, weights=None, rank=0, write_cfg_to_weights=False, nc=None,
-                 export_divide_factor_width=None, export_divide_factor_height=None, no_decode_layer=False):
+                 divide_x=None, divide_y=None, divide_w=None, divide_h=None, no_decode_layer=False):
         self.rank = rank
         assert cfg_file is not None or weights is not None
 
@@ -86,8 +85,8 @@ class EdgeYOLO:
             # time.sleep(1000)
 
             self.model = load_model(self.cfg_data, nc=self.ckpt["cfg_data"]["nc"],
-                                    export_divide_factor_width=export_divide_factor_width,
-                                    export_divide_factor_height=export_divide_factor_height,
+                                    divide_x=divide_x, divide_y=divide_y,
+                                    divide_h=divide_h, divide_w=divide_w,
                                     no_decode_layer=no_decode_layer)
             try:
                 self.model.load_state_dict(self.ckpt["model"], strict=False)

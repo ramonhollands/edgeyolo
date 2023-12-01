@@ -51,8 +51,6 @@ class Detector(EdgeYOLO):
         return ret_ims, rs
 
     def __postprocess(self, results, rs):
-        # print(results, results.shape)
-
         outs = postprocess(results, len(self.class_names), self.conf_thres, self.nms_thres, True)
         for i, r in enumerate(rs):
             if outs[i] is not None:
@@ -97,6 +95,8 @@ class Detector(EdgeYOLO):
                 raise
             if self.use_decoder:
                 net_outputs = self.decode_outputs(net_outputs)
+
+            imgs = imgs[0] if len(imgs) == 1 else imgs
             outputs = self.__postprocess(net_outputs, ratios)
             self.dt = time() - self.t0
 
