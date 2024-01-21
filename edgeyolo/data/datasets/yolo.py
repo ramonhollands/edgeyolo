@@ -258,7 +258,16 @@ class YOLODataset(Dataset):
         Returns:
           resized_img, rectangles, origin_img_size, idx, segments
         """
-        anno = self.annotation_list[index]
+
+        try:
+            anno = self.annotation_list[index]
+        except IndexError:
+            print(f"IndexError: index {index} out of range for annotation_list.")
+            print(f"Length of annotation_list: {len(self.annotation_list)}")
+            rand_index = np.random.randint(0, len(self.annotation_list))
+            print('Randomly pick index: ', rand_index)
+            anno = self.annotation_list[rand_index]
+
         res = anno["annotations"].copy()
 
         img, res, img_info = self.load_resized_img(index, res)
