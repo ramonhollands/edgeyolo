@@ -275,6 +275,11 @@ class Trainer(EdgeYOLO):
         load_evaluator()
 
     def random_resize(self):
+        
+        # quick fix to prevent negative values on small image sizes
+        if self.input_size[0] < 224 or self.input_size[1] < 224:
+            return
+
         tensor = torch.LongTensor(2).to(device=self.device)
 
         if self.rank == 0:

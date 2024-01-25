@@ -80,6 +80,9 @@ class DataPrefetcher:
             else:
                 self.next_input, self.next_target, _, _ = next(self.loader)
         except StopIteration:
+            print("StopIteration")
+            print(self.next_input)
+            print(self.next_target)
             self.next_input = None
             self.next_target = None
             if self.train_mask:
