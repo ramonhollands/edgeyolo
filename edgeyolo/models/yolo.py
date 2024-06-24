@@ -91,9 +91,13 @@ class YOLOXDetect(nn.Module):
         self.rego_preds = None
 
     @staticmethod
-    def _make_grid(nx=20, ny=20):
+    def _make_grid(nx=20, ny=20, n_anchors=1):
         yv, xv = torch.meshgrid([torch.arange(ny), torch.arange(nx)])
-        return torch.stack((xv, yv), 2).view((1, 1, ny, nx, 2)).float()
+
+        if n_anchors == 1:
+            return torch.stack((xv, yv), 2).view((1, ny, nx, 2)).float()
+        else:
+            return torch.stack((xv, yv), 2).view((1, 1, ny, nx, 2)).float()
 
     def forward(self, x):
         z = []
@@ -121,33 +125,65 @@ class YOLOXDetect(nn.Module):
                 x_rego = self.rego_preds[i](reg_feat)
                 x[i] = torch.cat([x_rego, x_cls], dim=1)
 
-            bs, _, ny, nx = x[i].shape  # x(bs,85,20,20) to x(bs,1,20,20,85)
-            x[i] = x[i].view(bs, self.n_anchors, self.num_classes + 5, ny, nx).permute(0, 1, 3, 4, 2).contiguous()
+            if self.n_anchors != 1:
+                exit('Not supported')
 
-            if not self.training and not self.no_decode_layer:  # inference
-                # if self.grid[i].shape[2:4] != x[i].shape[2:4]:
-                self.grid[i] = self._make_grid(nx, ny).to(x[i].device)
+            if export and self.n_anchors == 1:
+                bs, _, ny, nx = x[i].shape  # x(bs, 85, 20, 20)
+                x[i] = x[i].view(bs, self.num_classes + 5, ny, nx).permute(0, 2, 3, 1).contiguous()
 
+                self.grid[i] = self._make_grid(nx, ny, self.n_anchors).to(x[i].device)
                 y = x[i]
-                if not export:
-                    y[..., 4:] = y[..., 4:].sigmoid()
-                    y[..., 0:2] = (y[..., 0:2] + self.grid[i]) * self.stride[i]  # xy
-                    y[..., 2:4] = torch.exp(y[..., 2:4]) * self.stride[i]  # wh
-                else:
-                    xy, wh, conf = y.split((2, 2, self.num_classes + 1), 4)  # y.tensor_split((2, 4, 5), 4)# torch 1.8.0
-                    conf = conf.sigmoid()
 
-                    xy = (xy + self.grid[i]) * self.stride[i]  # new xy
-                    wh = torch.exp(wh) * self.stride[i]  # new wh
+                xy, wh, conf = y.split((2, 2, self.num_classes + 1), 3)
 
-                    if self.divide_x:
-                        xy = xy / torch.tensor([self.divide_x, self.divide_y])
-                        wh = wh / torch.tensor([self.divide_w, self.divide_h])
-                        wh.clamp_(min=0.0, max=1.0)
+                conf = conf.sigmoid()
 
-                    y = torch.cat((xy, wh, conf), 4)
+                xy = (xy + self.grid[i]) * self.stride[i]  # new xy
 
+                wh = torch.exp(wh) * self.stride[i]  # new wh
+
+                xy = xy / torch.tensor([self.divide_x, self.divide_y])
+                wh = wh / torch.tensor([self.divide_w, self.divide_h])
+
+                # export friendly wh.clamp_(min=0.0, max=1.0)
+                wh = torch.relu(wh)
+                wh = 1 - torch.relu(1 - wh)
+                xy = torch.relu(xy)
+                xy = 1 - torch.relu(1 - xy)
+
+                y = torch.cat((xy, wh, conf), 3)
+
+                # Flatten the tensor
                 z.append(y.view(bs, -1, self.num_classes + 5))
+            else:
+                bs, _, ny, nx = x[i].shape  # x(bs,85,20,20) to x(bs,1,20,20,85)
+                x[i] = x[i].view(bs, self.n_anchors, self.num_classes + 5, ny, nx).permute(0, 1, 3, 4, 2).contiguous()
+
+                if not self.training and not self.no_decode_layer:  # inference
+                    # if self.grid[i].shape[2:4] != x[i].shape[2:4]:
+                    self.grid[i] = self._make_grid(nx, ny, self.n_anchors).to(x[i].device)
+
+                    y = x[i]
+                    if not export:
+                        y[..., 4:] = y[..., 4:].sigmoid()
+                        y[..., 0:2] = (y[..., 0:2] + self.grid[i]) * self.stride[i]  # xy
+                        y[..., 2:4] = torch.exp(y[..., 2:4]) * self.stride[i]  # wh
+                    else:
+                        xy, wh, conf = y.split((2, 2, self.num_classes + 1), 4)  # y.tensor_split((2, 4, 5), 4)# torch 1.8.0
+                        conf = conf.sigmoid()
+
+                        xy = (xy + self.grid[i]) * self.stride[i]  # new xy
+                        wh = torch.exp(wh) * self.stride[i]  # new wh
+
+                        if self.divide_x:
+                            xy = xy / torch.tensor([self.divide_x, self.divide_y])
+                            wh = wh / torch.tensor([self.divide_w, self.divide_h])
+                            wh.clamp_(min=0.0, max=1.0)
+
+                        y = torch.cat((xy, wh, conf), 4)
+
+                    z.append(y.view(bs, -1, self.num_classes + 5))
 
         return x if (self.training or self.no_decode_layer) else torch.cat(z, 1)
 
