@@ -17,6 +17,7 @@ seaborn
 scipy
 onnx
 onnxsim
+coremltools
 ###### tensorrt export #####
 # pycuda
 # tensorrt

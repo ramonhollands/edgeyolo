@@ -10,6 +10,7 @@ import cv2
 import os
 
 from edgeyolo.detect import Detector, TRTDetector, draw
+from edgeyolo.detect.coreml_detector import CoreMlDetector
 
 
 def get_args():
@@ -43,6 +44,7 @@ def detect_single(args):
 
     # detector setup
     detector = TRTDetector if args.trt else Detector
+    detector = CoreMlDetector
     detect = detector(
         weight_file=args.weights,
         conf_thres=args.conf_thres,
@@ -107,6 +109,7 @@ def detect_single(args):
             break
 
         results = detect(frames, args.legacy)
+        print(results)
         dt = detect.dt
         all_dt.append(dt)
         if len(all_dt) > dts_len:
@@ -123,6 +126,12 @@ def detect_single(args):
         for img in imgs:
             # print(img.shape)
             cv2.imshow("EdgeYOLO result", img)
+
+            if not exist_save_dir:
+                    os.makedirs(args.save_dir, exist_ok=True)
+                    exist_save_dir = True
+            file_name = f"{str(date.now()).split('.')[0].replace(':', '').replace('-', '').replace(' ', '')}.jpg"
+            cv2.imwrite(os.path.join(args.save_dir, file_name), img)
             count += 1
 
             key = cv2.waitKey(delay)

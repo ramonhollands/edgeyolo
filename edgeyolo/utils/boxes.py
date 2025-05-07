@@ -46,13 +46,14 @@ def filter_box(output, scale_range):
 
 
 def postprocess(prediction, num_classes, conf_thre=0.7, nms_thre=0.45, class_agnostic=False, obj_conf_enabled=True):
-    # print(prediction.shape)
-
+    
     box_corner = prediction.new(prediction.shape)
-    box_corner[:, :, 0] = prediction[:, :, 0] - prediction[:, :, 2] / 2
-    box_corner[:, :, 1] = prediction[:, :, 1] - prediction[:, :, 3] / 2
-    box_corner[:, :, 2] = prediction[:, :, 0] + prediction[:, :, 2] / 2
-    box_corner[:, :, 3] = prediction[:, :, 1] + prediction[:, :, 3] / 2
+    # non normalized coordinates for now
+    box_corner[:, :, 0] = (prediction[:, :, 0] - prediction[:, :, 2] / 2)
+    box_corner[:, :, 1] = (prediction[:, :, 1] - prediction[:, :, 3] / 2)
+    box_corner[:, :, 2] = (prediction[:, :, 0] + prediction[:, :, 2] / 2)
+    box_corner[:, :, 3] = (prediction[:, :, 1] + prediction[:, :, 3] / 2)
+
     prediction[:, :, :4] = box_corner[:, :, :4]
 
     if not obj_conf_enabled:

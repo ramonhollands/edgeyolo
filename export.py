@@ -74,13 +74,14 @@ def main():
     print('Using divide_xywh: ', divide_x, divide_y, divide_w, divide_h)
 
     exp = EdgeYOLO(weights=args.weights, no_decode_layer=args.no_decode_layer, divide_x=divide_x, divide_y=divide_y, divide_w=divide_w, divide_h=divide_h)
+
     model = exp.model
     model.tflite_image_sizes = args.input_size
     replace_module(model, torch.nn.SiLU, SiLU)
-
     model.fuse()
-    model.eval()
+    
     # model.cuda()
+    model.eval()
 
     if args.export_path:
         export_path = Path(args.export_path)
@@ -88,6 +89,60 @@ def main():
         export_path = Path(args.weights).parent / "export"
 
     os.makedirs(export_path, exist_ok=True)
+
+
+
+    # import ai_edge_torch
+    # edge_model = ai_edge_torch.convert(model, example_inputs)
+    # edge_model.export('visdrone.tflite')
+
+    example_inputs = (torch.rand(1, 3, *args.input_size),)
+    
+    outputs = model(*example_inputs)
+    print(outputs[0][0][:10])
+    
+    import coremltools as ct
+    example_inputs = (torch.rand(1, 3, *args.input_size),)
+    # exported_program = torch.export.export(model, example_inputs, strict=True)
+    exported_program = torch.jit.trace(model, example_inputs, strict=True)
+
+    model_from_export = ct.convert(
+        exported_program, 
+        inputs=[ct.ImageType("image", shape=example_inputs[0].shape,
+                                  scale=1, bias=[0,0,0])],
+        outputs=[ct.TensorType(name=name) for name in ['output']], 
+        convert_to="mlprogram",
+        compute_precision=ct.precision.FLOAT16,
+    )
+
+    file_name = os.path.join(export_path,
+                            f"{args.input_size[0]}x{args.input_size[1]}_"
+                            f"batch{args.batch}"
+                            f"{'_fp16'}").replace("\\", "/")
+    coreml_file_name = file_name + ".mlpackage"
+
+    print('Exporting coremltools model to: ', coreml_file_name)
+
+    model_from_export.save(coreml_file_name)
+
+    # from PIL import Image
+    # # pil_image = Image.new('RGB', (256, 128), (0, 0, 0))
+    # # pil_image.paste(Image.open('lego.png').convert('RGB').resize((128,128)), (0, 0))
+    # pil_image = Image.new('RGB', (160, 160), (0, 0, 0))
+    # pil_image.paste(Image.open('lego.png').convert('RGB').resize((160,160)), (0, 0))
+    # mlmodel = ct.models.MLModel('lego.mlpackage')
+    # outputs = mlmodel.predict({"image": pil_image})
+    # for i in range(525):
+    #     conf = outputs['output'][0][i][4]
+    #     if conf > 0.8:
+    #         print('Found something', conf)
+    #         print(outputs['output'][0][i][:2])
+    #         stride = outputs['output'][0][i][6]
+    #         print(torch.exp(torch.tensor(outputs['output'][0][i][2])) * stride)
+    #         print(torch.exp(torch.tensor(outputs['output'][0][i][3])) * stride)
+    #         print(outputs['output'][0][i][4:])
+
+    exit('Ready exporting coremltools model')
 
     file_name = os.path.join(export_path,
                              f"{args.input_size[0]}x{args.input_size[1]}_"

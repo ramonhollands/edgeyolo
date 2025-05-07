@@ -52,7 +52,7 @@ class EdgeYOLO:
         if weights is not None and os.path.isfile(weights):
             if not rank:
                 logger.info(f"loading models from weight {os.path.abspath(weights)}")
-            self.ckpt = torch.load(weights, map_location="cpu")
+            self.ckpt = torch.load(weights, map_location="cpu", weights_only=False)
             if write_cfg_to_weights:
                 if cfg_file is not None:
                     self.ckpt["cfg_data"] = open(cfg_file, "r", encoding="utf8").read()
@@ -156,7 +156,7 @@ class EdgeYOLO:
     def try_load_state_dict(self, state_dict, distributed=False):
         is_match = True
         if isinstance(state_dict, str) and os.path.isfile(state_dict):
-            state_dict = torch.load(state_dict, map_location="cpu")["model"]
+            state_dict = torch.load(state_dict, map_location="cpu", weights_only=False)["model"]
 
         if distributed:
             try:
