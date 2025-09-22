@@ -83,7 +83,7 @@ class TRTDetector:
         strides = torch.cat(strides, dim=1).type(dtype)
 
         outputs[..., :2] = (outputs[..., :2] + grids) * strides
-        outputs[..., 2:4] = torch.exp(outputs[..., 2:4]) * strides
+        outputs[..., 2:4] = (outputs[..., 2:4].sigmoid() * 2) ** 2 * strides
         return outputs
 
     def __call__(self, imgs, legacy=False):

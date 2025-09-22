@@ -272,7 +272,7 @@ class YoloLoss(nn.Module):
         )
         grid = grid.view(1, -1, 2)
         output[..., :2] = (output[..., :2] + grid) * stride
-        output[..., 2:4] = torch.exp(output[..., 2:4]) * stride
+        output[..., 2:4] = (output[..., 2:4].sigmoid() * 2) ** 2 * stride
         return output, grid
 
     def decode_outputs(self, outputs, dtype):
@@ -289,7 +289,7 @@ class YoloLoss(nn.Module):
         strides = torch.cat(strides, dim=1).type(dtype)
 
         outputs[..., :2] = (outputs[..., :2] + grids) * strides
-        outputs[..., 2:4] = torch.exp(outputs[..., 2:4]) * strides
+        outputs[..., 2:4] = (outputs[..., 2:4].sigmoid() * 2) ** 2 * strides
         return outputs
 
     def get_losses(

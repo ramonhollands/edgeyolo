@@ -141,7 +141,7 @@ class YOLOXDetect(nn.Module):
 
                 xy = (xy + self.grid[i]) * self.stride[i]  # new xy
 
-                wh = torch.exp(wh) * self.stride[i]  # new wh
+                wh = (wh.sigmoid() * 2) ** 2 * self.stride[i]  # new wh
 
                 xy = xy / torch.tensor([self.divide_x, self.divide_y])
                 wh = wh / torch.tensor([self.divide_w, self.divide_h])
@@ -174,14 +174,14 @@ class YOLOXDetect(nn.Module):
                         conf = conf.sigmoid()
 
                         xy = (xy + self.grid[i]) * self.stride[i]  # new xy
-                        wh = torch.exp(wh) * self.stride[i]  # new wh
+                        wh = (wh.sigmoid() * 2) ** 2 * self.stride[i]
 
                         if self.divide_x:
                             xy = xy / torch.tensor([self.divide_x, self.divide_y])
                             wh = wh / torch.tensor([self.divide_w, self.divide_h])
                             wh.clamp_(min=0.0, max=1.0)
 
-                        y = torch.cat((xy, wh, conf), 4)
+                        y = torch.cat((xy, wh, conf), 4,)
 
                     z.append(y.view(bs, -1, self.num_classes + 5))
 
@@ -304,7 +304,7 @@ class AnchorFreeDetect(nn.Module):
                     xy, wh, conf = y.split((2, 2, self.nc + 1), 4)  # y.tensor_split((2, 4, 5), 4)  # torch 1.8.0
                     conf = conf.sigmoid()
                     xy = (xy + self.grid[i]) * self.stride[i]       # new xy
-                    wh = torch.exp(wh) * self.stride[i]             # new wh
+                    wh = (wh.sigmoid() * 2) ** 2 * self.stride[i]   # new wh
                     y = torch.cat((xy, wh, conf), 4)
 
                 z.append(y.view(bs, -1, self.no))

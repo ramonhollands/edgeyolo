@@ -39,7 +39,7 @@ def get_args():
     parser.add_argument("--train", action="store_true", help="use train dataset for calibration(default: val)")
     parser.add_argument("--all", action="store_true", help="use both train and val dataset")
     parser.add_argument("--num-imgs", type=int, default=512, help="number of images for calibration, -1 for all images")
-    parser.add_argument("--divide_xywh", type=int, nargs="+", default=[640, 640, 640, 604], help="divide xywh by image size before last concat to enable tflite quantization")
+    parser.add_argument("--divide_xywh", type=int, nargs="+", default=[640, 640, 640, 640], help="divide xywh by image size before last concat to enable tflite quantization")
     parser.add_argument("--no_decode_layer", action="store_true", help="remove detection decode layer")
 
     parser.add_argument("--export_path", type=str)
@@ -75,7 +75,8 @@ def main():
 
     exp = EdgeYOLO(weights=args.weights, no_decode_layer=args.no_decode_layer, divide_x=divide_x, divide_y=divide_y, divide_w=divide_w, divide_h=divide_h)
     model = exp.model
-    model.tflite_image_sizes = args.input_size
+
+    # model.tflite_image_sizes = args.input_size
     replace_module(model, torch.nn.SiLU, SiLU)
 
     model.fuse()
@@ -88,6 +89,45 @@ def main():
         export_path = Path(args.weights).parent / "export"
 
     os.makedirs(export_path, exist_ok=True)
+
+
+    if(True):
+        # https://apple.github.io/coremltools/docs-guides/source/convert-pytorch-workflow.html
+        # https://github.com/ultralytics/yolov5/blob/100a423b66fee81e0a2915d5da934d7872f12c8c/export.py#L312
+
+        example_input = torch.rand(1, 3, 160, 160) 
+        traced_model = torch.jit.trace(model, example_input)
+
+        import coremltools as ct
+
+        coreml_model_program = ct.convert(
+            traced_model,
+            convert_to="mlprogram",
+             inputs=[ct.ImageType("image", shape=example_input.shape)]
+        )
+
+        coreml_model_program.save(str(export_path/"coreml_program.mlpackage"))
+
+        # # Using image_input in the inputs parameter:
+        # # Convert to Core ML program using the Unified Conversion API.
+        coreml_nn = ct.convert(
+            traced_model,
+            # convert_to="mlprogram",
+            convert_to="neuralnetwork",
+            inputs=[ct.TensorType(shape=example_input.shape)]
+        )
+
+        bits, mode = (16, "linear")
+        coreml_model_16 = ct.models.neural_network.quantization_utils.quantize_weights(coreml_nn, bits, mode)
+        coreml_model_16.save(str(export_path/"model_16.mlpackage"))
+
+        # bits, mode = (8, "kmeans_lut")
+        # coreml_model_8 = ct.models.neural_network.quantization_utils.quantize_weights(coreml_nn, bits, mode)
+
+        # # Save the converted model.
+        # coreml_model_8.save(str(export_path/"model_8.mlpackage"))
+
+        return
 
     file_name = os.path.join(export_path,
                              f"{args.input_size[0]}x{args.input_size[1]}_"
@@ -126,6 +166,9 @@ def main():
 
     input_names = ["input_0"]
     output_names = ["output_0"]
+
+    # model.half()
+    # x = x.half()
 
     if args.onnx_only:
         import onnx
