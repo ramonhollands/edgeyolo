@@ -168,7 +168,7 @@ class YOLOXDetect(nn.Module):
                     if not export:
                         y[..., 4:] = y[..., 4:].sigmoid()
                         y[..., 0:2] = (y[..., 0:2] + self.grid[i]) * self.stride[i]  # xy
-                        y[..., 2:4] = torch.exp(y[..., 2:4]) * self.stride[i]  # wh
+                        y[..., 2:4] = (y[..., 2:4].sigmoid() * 2) ** 2 * self.stride[i]  # wh
                     else:
                         xy, wh, conf = y.split((2, 2, self.num_classes + 1), 4)  # y.tensor_split((2, 4, 5), 4)# torch 1.8.0
                         conf = conf.sigmoid()
@@ -298,7 +298,7 @@ class AnchorFreeDetect(nn.Module):
                 if not export:
                     y[..., 4:] = y[..., 4:].sigmoid()
                     y[..., 0:2] = (y[..., 0:2] + self.grid[i]) * self.stride[i]  # xy
-                    y[..., 2:4] = torch.exp(y[..., 2:4]) * self.stride[i]  # wh
+                    y[..., 2:4] = (y[..., 2:4].sigmoid() * 2) ** 2 * self.stride[i]  # wh
                 else:
                     # print("onnx", y.shape)
                     xy, wh, conf = y.split((2, 2, self.nc + 1), 4)  # y.tensor_split((2, 4, 5), 4)  # torch 1.8.0
