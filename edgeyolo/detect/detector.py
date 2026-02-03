@@ -7,34 +7,38 @@ from time import time
 
 
 class Detector(EdgeYOLO):
-
     conf_thres = 0.25
     nms_thres = 0.5
     fuse = True
     cpu = False
     fp16 = False
     use_decoder = False
+    device = 0  # CUDA device index (e.g. 0, 1, 2). Ignored when cpu=True.
 
     def __init__(self, weight_file, **kwargs):
         super(Detector, self).__init__(None, weight_file)
-        
+
         for k, v in kwargs.items():
             if hasattr(self, k):
                 self.__setattr__(k, v)
             else:
                 print(f"no keyword named {k}")
 
+        self._device = torch.device("cpu" if self.cpu else f"cuda:{self.device}")
+
         print(get_model_info(self.model, self.input_size))
 
         if self.fuse:
             with torch.no_grad():
                 self.model.fuse()
-                print("After re-parameterization:", get_model_info(self.model, self.input_size))
+                print(
+                    "After re-parameterization:",
+                    get_model_info(self.model, self.input_size),
+                )
 
-        if not self.cpu:
-            self.model.cuda(0)
-            if self.fp16:
-                self.model.half()
+        self.model.to(self._device)
+        if not self.cpu and self.fp16:
+            self.model.half()
         self.model.eval()
 
     def __preprocess(self, imgs):
@@ -51,13 +55,15 @@ class Detector(EdgeYOLO):
         return ret_ims, rs
 
     def __postprocess(self, results, rs):
-        outs = postprocess(results, len(self.class_names), self.conf_thres, self.nms_thres, True)
+        outs = postprocess(
+            results, len(self.class_names), self.conf_thres, self.nms_thres, True
+        )
         for i, r in enumerate(rs):
             if outs[i] is not None:
                 outs[i] = outs[i].cpu()
                 outs[i][..., :4] /= r
         return outs
-    
+
     def decode_outputs(self, outputs):
         dtype = outputs.type()
         grids = []
@@ -75,15 +81,15 @@ class Detector(EdgeYOLO):
         outputs[..., :2] = (outputs[..., :2] + grids) * strides
         outputs[..., 2:4] = torch.exp(outputs[..., 2:4]) * strides
         return outputs
-    
+
     def __call__(self, imgs, legacy=False):
         if isinstance(imgs, np.ndarray):
             imgs = [imgs]
 
         with torch.no_grad():
             inputs, ratios = self.__preprocess(imgs)
+            inputs = inputs.to(self._device)
             if not self.cpu:
-                inputs = inputs.cuda()
                 if legacy:
                     inputs /= 255
                 if self.fp16:
@@ -101,4 +107,3 @@ class Detector(EdgeYOLO):
             self.dt = time() - self.t0
 
         return outputs
-
