@@ -1,7 +1,8 @@
 torch
 torchvision
-opencv-python
-numpy
+# OpenCV 4.11+ may require NumPy 2 on Python 3.12; NGC torch is built against NumPy 1.x.
+opencv-python==4.10.0.84
+numpy>=1.26,<2
 loguru
 pycocotools
 requests
