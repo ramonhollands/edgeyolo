@@ -24,6 +24,7 @@ from ..data import (
     get_dataset,
 )
 
+import random
 import tabulate
 import datetime
 import yaml
