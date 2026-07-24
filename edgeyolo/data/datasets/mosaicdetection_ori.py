@@ -10,7 +10,6 @@ from .datasets_wrapper import Dataset
 
 from .mask_coding import *
 from .coco import COCODataset
-from .dota import DotaDataset
 
 
 def get_mosaic_coordinate(mosaic_image, mosaic_index, xc, yc, w, h, input_h, input_w):
@@ -45,7 +44,7 @@ class MosaicDetection(Dataset):
     ):
         """
         Args:
-            dataset(COCODataset or DotaDataset) : Pytorch dataset object.
+            dataset(COCODataset) : Pytorch dataset object.
             img_size (tuple):
             mosaic (bool): enable mosaic augmentation or not.
             preproc (func):
@@ -58,7 +57,7 @@ class MosaicDetection(Dataset):
             *args(tuple) : Additional arguments for mixup random sampler.
         """
         super().__init__(img_size, mosaic=mosaic)
-        self._dataset: COCODataset or DotaDataset = dataset
+        self._dataset: COCODataset = dataset
         self.preproc = preproc
         self.degrees = degrees
         self.translate = translate
