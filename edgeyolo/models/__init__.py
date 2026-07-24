@@ -25,7 +25,7 @@ def load_model(cfg_file, nc=None, divide_x=None, divide_y=None, divide_h=None, d
     return my_model
 
 
-class EdgeYOLO:
+class Boxify:
 
     model = None
     cfg_data = None
@@ -190,3 +190,6 @@ class EdgeYOLO:
     def error(self, err):
         if self.rank == 0:
             logger.error(err)
+
+# Backwards-compatible alias during EdgeYOLO -> Boxify rename
+EdgeYOLO = Boxify

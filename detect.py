@@ -13,7 +13,7 @@ from edgeyolo.detect import Detector, TRTDetector, draw
 
 
 def get_args():
-    parser = argparse.ArgumentParser("EdgeYOLO Detect parser")
+    parser = argparse.ArgumentParser("Boxify Detect parser")
 
     parser.add_argument("-w", "--weights", type=str, default="edgeyolo_coco.pth", help="weight file")
     parser.add_argument("-c", "--conf-thres", type=float, default=0.25, help="confidence threshold")
@@ -122,7 +122,7 @@ def detect_single(args):
         # print([im.shape for im in frames])
         for img in imgs:
             # print(img.shape)
-            cv2.imshow("EdgeYOLO result", img)
+            cv2.imshow("Boxify result", img)
             count += 1
 
             key = cv2.waitKey(delay)
@@ -260,7 +260,7 @@ def show(msg, all_imgs, args, pid):
                   f"average:{mean_dt:.1f}ms --> {1000. / mean_dt:.1f}FPS", end="      ")
 
             t0 = time()
-            cv2.imshow("EdgeYOLO result", img)
+            cv2.imshow("Boxify result", img)
             key = cv2.waitKey(delay)
             if key in [ord("q"), 27]:
                 msg["end"] = True

@@ -1,4 +1,4 @@
-from ..models import EdgeYOLO
+from ..models import Boxify
 from ..data.data_augment import preproc
 from ..utils import postprocess, get_model_info
 import torch
@@ -6,7 +6,7 @@ import numpy as np
 from time import time
 
 
-class Detector(EdgeYOLO):
+class Detector(Boxify):
     conf_thres = 0.25
     nms_thres = 0.5
     fuse = True

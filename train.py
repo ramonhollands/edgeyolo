@@ -4,7 +4,7 @@ import argparse
 
 
 def make_parser():
-    parser = argparse.ArgumentParser("EdgeYOLO train parser")
+    parser = argparse.ArgumentParser("Boxify train parser")
     parser.add_argument("-c", "--cfg", type=str, default="params/train/train_coco.yaml")
 
     # Not commend

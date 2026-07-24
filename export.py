@@ -9,13 +9,13 @@ from pathlib import Path
 
 from loguru import logger
 
-from edgeyolo import EdgeYOLO
+from edgeyolo import Boxify, EdgeYOLO
 from edgeyolo.utils import replace_module
 from edgeyolo.utils2.activations import SiLU
 
 
 def get_args():
-    parser = argparse.ArgumentParser("EdgeYOLO TensorRT deploy")
+    parser = argparse.ArgumentParser("Boxify TensorRT deploy")
 
     # basic
     parser.add_argument("--weights", type=str, default="./weights/edgeyolo_tiny_coco.pth")
@@ -73,7 +73,7 @@ def main():
 
     print('Using divide_xywh: ', divide_x, divide_y, divide_w, divide_h)
 
-    exp = EdgeYOLO(weights=args.weights, no_decode_layer=args.no_decode_layer, divide_x=divide_x, divide_y=divide_y, divide_w=divide_w, divide_h=divide_h)
+    exp = Boxify(weights=args.weights, no_decode_layer=args.no_decode_layer, divide_x=divide_x, divide_y=divide_y, divide_w=divide_w, divide_h=divide_h)
     model = exp.model
     model.tflite_image_sizes = args.input_size
     replace_module(model, torch.nn.SiLU, SiLU)

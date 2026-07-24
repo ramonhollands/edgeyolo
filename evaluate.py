@@ -15,7 +15,7 @@ from edgeyolo.train.trainer import Trainer as Evaluator
 def get_args():
     import argparse
 
-    parser = argparse.ArgumentParser("EdgeYOLO evaluate parser")
+    parser = argparse.ArgumentParser("Boxify evaluate parser")
     parser.add_argument("-w", "--weights", type=str, default="edgeyolo_coco.pth", help="weights")
     parser.add_argument("-b", "--batch", type=int, default=8, help="batch size for each device")
     parser.add_argument("-i", "--input-size", type=int, nargs="+", default=[640, 640], help="image input size")
@@ -144,8 +144,8 @@ def eval_single(
         params["batch_size_per_gpu"] = detector.batch_size
         params["input_size"] = detector.input_size
     else:
-        from edgeyolo import EdgeYOLO
-        ey = EdgeYOLO(weights=params.get("weights"))
+        from edgeyolo import Boxify, EdgeYOLO
+        ey = Boxify(weights=params.get("weights"))
         model = ey.model
         params["pixel_range"] = ey.ckpt.get("pixel_range") or 255
 

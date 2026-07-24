@@ -38,7 +38,7 @@ import time
 from torch.nn.parallel import DistributedDataParallel as DDP
 
 
-class Trainer(EdgeYOLO):
+class Trainer(Boxify):
 
     dataloader: MaskDataLoader = None
     evaluator: Evaluator = None
