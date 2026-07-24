@@ -1,10 +1,10 @@
 # models & weights------------------------------------------------------------------------------------------------------
-model_cfg: "params/model/edgeyolo_tiny.yaml"         # model structure config file
-weights: "output/train/edgeyolo_tiny_coco/last.pth"  # contains model_cfg, set null or a no-exist filename if not use it
+model_cfg: "params/model/boxify_tiny.yaml"         # model structure config file
+weights: "output/train/boxify_tiny_coco/last.pth"  # contains model_cfg, set null or a no-exist filename if not use it
 use_cfg: false                                       # force using model_cfg instead of cfg in weights to build model
 
 # output----------------------------------------------------------------------------------------------------------------
-output_dir: "output/train/edgeyolo_tiny_coco"        # all train output file will save in this dir
+output_dir: "output/train/boxify_tiny_coco"        # all train output file will save in this dir
 save_checkpoint_for_each_epoch: true                 # save models for each epoch (epoch_xxx.pth, not only best/last.pth)
 log_file: "log.txt"                                  # log file (in output_dir)
 
@@ -62,5 +62,5 @@ print_interval: 100               # print result after every $print_interval ite
 # others----------------------------------------------------------------------------------------------------------------
 load_optimizer_params: true       # load optimizer params when resume train, set false if there is an error.
 train_backbone: true              # set false if you only want to train yolo head
-train_start_layers: 51            # if not train_backbone, train from this layer, see params/models/edgeyolo.yaml
+train_start_layers: 51            # if not train_backbone, train from this layer, see params/models/boxify.yaml
 force_start_epoch: -1             # set -1 to disable this option
